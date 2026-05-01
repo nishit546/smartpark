@@ -59,6 +59,35 @@ const MapPage = () => {
     setMap(null);
   }, []);
 
+  // Real-Time Simulation Effect
+  useEffect(() => {
+    if (zones.length === 0) return;
+
+    const intervalId = setInterval(() => {
+      setZones((prevZones) =>
+        prevZones.map((zone) => {
+          // 30% chance to change spots for any given zone every 4 seconds
+          if (Math.random() > 0.7) {
+            const change = Math.random() > 0.5 ? 1 : -1;
+            // Ensure spots don't drop below 0
+            const newSpots = Math.max(0, zone.availableSpots + change);
+            return { ...zone, availableSpots: newSpots };
+          }
+          return zone;
+        })
+      );
+    }, 4000);
+
+    return () => clearInterval(intervalId);
+  }, [zones.length]);
+
+  const getMarkerIcon = (zone) => {
+    // If valet, we can keep it distinct or color code it too. Let's color code by availability for all.
+    if (zone.availableSpots === 0) return 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'; // Occupied
+    if (zone.availableSpots < 5) return 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png'; // Limited
+    return 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'; // Available
+  };
+
   const onLoadAutocomplete = (autocomplete) => {
     autocompleteRef.current = autocomplete;
   };
@@ -146,9 +175,9 @@ const MapPage = () => {
               <Marker
                 key={zone._id}
                 position={{ lat: zone.location.lat, lng: zone.location.lng }}
-                title={zone.name}
+                title={`${zone.name} (${zone.availableSpots} spots)`}
                 icon={{
-                  url: zone.type === 'valet' ? 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png' : 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                  url: getMarkerIcon(zone)
                 }}
               />
             ))}
